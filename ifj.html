@@ -1,0 +1,59 @@
+<html>
+  <body>
+    <script src="https://unpkg.com/read-excel-file@4.x/bundle/read-excel-file.min.js"></script>
+
+    <input type="file" id="input" />
+
+    <script>
+      function get_values (rows, col_index, sources) {
+        ;(val = []), (min = []), (max = [])
+        for (index = 0; index < sources; index++) {
+          val[index] = rows[index + FIRST_SOURCE_ROW][col_index]
+          min[index] = rows[index + FIRST_SOURCE_ROW][col_index + 1]
+          max[index] = rows[index + FIRST_SOURCE_ROW][col_index + 2]
+        }
+        return { val: val, min: min, max: max }
+      }
+
+      const input = document.getElementById('input')
+
+      input.addEventListener('change', async () => {
+        rows = await readXlsxFile(input.files[0], { sheet: 'PlanSum+robust' })
+
+        header = rows[1]
+        col = 0
+        while (header[col] != '' && header[col] != 'PTV_1_volume') col++
+        col++
+        FIRST_SOURCE_ROW = 2
+        sources = 0 // number of sources - items in PTV_1_volume column
+
+        while (
+          rows[FIRST_SOURCE_ROW + sources] &&
+          rows[FIRST_SOURCE_ROW + sources][col] != ''
+        )
+          sources++
+
+        var readings = {}
+
+        while (header[col] != '') {
+          name = header[col].replaceAll('_', '').toLowerCase();
+          if (
+            header[col + 1].replaceAll('_','').toLowerCase() === name + 'min' &&
+            header[col + 2].replaceAll('_','').toLowerCase() === name + 'max'
+          ) {
+            data = get_values(rows, col, sources)
+            readings[name] = data
+            col += 3
+          } else {
+            console.log('alone', name)
+            col++
+          }
+        }
+        console.log(readings)
+
+        // `rows` is an array of rows
+        // each row being an array of cells.
+      })
+    </script>
+  </body>
+</html>
