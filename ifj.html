@@ -32,7 +32,13 @@
         }
         
         
-
+        errorUp=[]
+        errorDown=[]
+        for( i =0 ; i<data.val.length;i++)
+        {
+            errorUp[i]= data.max[i]-data.val[i]
+            errorDown[i]= data.val[i]-data.min[i]
+        }
 
         var trace1 = {
           x: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
@@ -40,7 +46,9 @@
           name: 'Control',
           error_y: {
             type: 'data',
-            array: [1, 0.5, 1.5],
+            symmetric: false,
+            array: errorUp,
+            arrayminus: errorDown,
             visible: true
           },
           type: 'bar'
@@ -94,6 +102,9 @@
           sources++
 
         while (header[col] != undefined && header[col] != '') {
+
+          origName = header[col]
+
           name = header[col].replaceAll('_', '').toLowerCase()
           if (
             header[col + 1].replaceAll('_', '').toLowerCase() ===
@@ -101,7 +112,7 @@
             header[col + 2].replaceAll('_', '').toLowerCase() === name + 'max'
           ) {
             data = get_values(rows, col, sources)
-            readings[name] = data
+            readings[origName] = data
             col += 3
           } else {
             console.log('alone', name)
