@@ -1,10 +1,55 @@
 <html>
   <body>
     <script src="https://unpkg.com/read-excel-file@4.x/bundle/read-excel-file.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
     <input type="file" id="input" />
+    <br />
+    <select id="mySelect"></select>
+    <div id="chart" style="width:1000px;height:500px;"></div>
 
     <script>
+      var readings = {}
+
+      function checkDataComplete(data)
+      {
+          for( i=0;i<data.val.length;i++)
+          {
+              if (data.val[i]==="x" || data.min[i]==="x" || data.max[i]==="x") return false
+          }
+          return true
+      }
+
+      function plot () {
+        const combo = document.getElementById('mySelect')
+        var key = combo.options[combo.selectedIndex].text;
+        data = readings[key]
+
+        if (! checkDataComplete(data)) 
+        {
+            alert("incomplete data for:"+key)
+            return
+        }
+        
+        
+
+
+        var trace1 = {
+          x: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
+          y: data.val,
+          name: 'Control',
+          error_y: {
+            type: 'data',
+            array: [1, 0.5, 1.5],
+            visible: true
+          },
+          type: 'bar'
+        }
+
+        var layout = { barmode: 'group' }
+        Plotly.newPlot('chart', [trace1])
+      }
+
       function get_values (rows, col_index, sources) {
         ;(val = []), (min = []), (max = [])
         for (index = 0; index < sources; index++) {
@@ -15,9 +60,24 @@
         return { val: val, min: min, max: max }
       }
 
-      const input = document.getElementById('input')
+      function addComboOptions (readings) {
+        var x = document.getElementById('mySelect')
+        for (var key in readings) {
+          var option = document.createElement('option')
 
-      input.addEventListener('change', async () => {
+          option.text = key
+          x.add(option)
+        }
+      }
+
+      const input = document.getElementById('input')
+      input.addEventListener('change', readXml)
+
+      const combo = document.getElementById('mySelect')
+
+      combo.addEventListener('change', plot)
+
+      async function readXml () {
         rows = await readXlsxFile(input.files[0], { sheet: 'PlanSum+robust' })
 
         header = rows[1]
@@ -33,13 +93,12 @@
         )
           sources++
 
-        var readings = {}
-
-        while (header[col] != '') {
-          name = header[col].replaceAll('_', '').toLowerCase();
+        while (header[col] != undefined && header[col] != '') {
+          name = header[col].replaceAll('_', '').toLowerCase()
           if (
-            header[col + 1].replaceAll('_','').toLowerCase() === name + 'min' &&
-            header[col + 2].replaceAll('_','').toLowerCase() === name + 'max'
+            header[col + 1].replaceAll('_', '').toLowerCase() ===
+              name + 'min' &&
+            header[col + 2].replaceAll('_', '').toLowerCase() === name + 'max'
           ) {
             data = get_values(rows, col, sources)
             readings[name] = data
@@ -49,11 +108,8 @@
             col++
           }
         }
-        console.log(readings)
-
-        // `rows` is an array of rows
-        // each row being an array of cells.
-      })
+        addComboOptions(readings)
+      }
     </script>
   </body>
 </html>
