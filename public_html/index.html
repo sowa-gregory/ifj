@@ -6,38 +6,34 @@
     <input type="file" id="input" />
     <br />
     <select id="mySelect"></select>
-    <div id="chart" style="width:1000px;height:500px;"></div>
+    <div id="chart" style="width:100%;height:100%;"></div>
 
     <script>
       var readings = {}
 
-      function checkDataComplete(data)
-      {
-          for( i=0;i<data.val.length;i++)
-          {
-              if (data.val[i]==="x" || data.min[i]==="x" || data.max[i]==="x") return false
-          }
-          return true
+      function checkDataComplete (data) {
+        for (i = 0; i < data.val.length; i++) {
+          if (data.val[i] === 'x' || data.min[i] === 'x' || data.max[i] === 'x')
+            return false
+        }
+        return true
       }
 
       function plot () {
         const combo = document.getElementById('mySelect')
-        var key = combo.options[combo.selectedIndex].text;
+        var key = combo.options[combo.selectedIndex].text
         data = readings[key]
 
-        if (! checkDataComplete(data)) 
-        {
-            alert("incomplete data for:"+key)
-            return
+        if (!checkDataComplete(data)) {
+          alert('incomplete data for:' + key)
+          return
         }
-        
-        
-        errorUp=[]
-        errorDown=[]
-        for( i =0 ; i<data.val.length;i++)
-        {
-            errorUp[i]= data.max[i]-data.val[i]
-            errorDown[i]= data.val[i]-data.min[i]
+
+        errorUp = []
+        errorDown = []
+        for (i = 0; i < data.val.length; i++) {
+          errorUp[i] = data.max[i] - data.val[i]
+          errorDown[i] = data.val[i] - data.min[i]
         }
 
         var trace1 = {
@@ -72,7 +68,6 @@
         var x = document.getElementById('mySelect')
         for (var key in readings) {
           var option = document.createElement('option')
-
           option.text = key
           x.add(option)
         }
@@ -102,7 +97,6 @@
           sources++
 
         while (header[col] != undefined && header[col] != '') {
-
           origName = header[col]
 
           name = header[col].replaceAll('_', '').toLowerCase()
