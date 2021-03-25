@@ -1,119 +1,188 @@
 <html>
-  <body>
+  <style>
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content {
+      flex-grow: 1;
+    }
+    
+  </style>
+  
+<body>
     <script src="https://unpkg.com/read-excel-file@4.x/bundle/read-excel-file.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
     <input type="file" id="input" />
-    <br />
-    <select id="mySelect"></select>
-    <div id="chart" style="width:100%;height:100%;"></div>
-
+    <div>
+      <select id="mySelect"></select>
+    </div>
+ 
+    <div id="chart" class="content"></div>
     <script>
-      var readings = {}
+      HEADER_ROW = 0; // equivalent to row 1 in Excel
+      FIRST_SOURCE_ROW = HEADER_ROW + 1;
+      SOURCES = 10; // number of sources
+      ID_COLUMN = 0; // column a
+      INDICATION_COLUMN = 6; // column G
 
-      function checkDataComplete (data) {
+      PTV_1_VOLUME_COLUMN = 8; // columns I
+
+      var readings = {};
+      var sources_id = [];
+
+      function checkDataComplete(data) {
         for (i = 0; i < data.val.length; i++) {
-          if (data.val[i] === 'x' || data.min[i] === 'x' || data.max[i] === 'x')
-            return false
+          if (data.val[i] === "x" || data.min[i] === "x" || data.max[i] === "x")
+            return false;
         }
-        return true
+        return true;
       }
 
-      function plot () {
-        const combo = document.getElementById('mySelect')
-        var key = combo.options[combo.selectedIndex].text
-        data = readings[key]
+      function plot() {
+        const combo = document.getElementById("mySelect");
+    
+        const color_arr = [
+          "rgba(138,194,51,1)",
+          "rgba(138,194,51,0.5)",
 
-        if (!checkDataComplete(data)) {
-          alert('incomplete data for:' + key)
-          return
-        }
+          "rgba(30,96,154,1)",
+          "rgba(30,96,154,0.8)",
 
-        errorUp = []
-        errorDown = []
+          "rgba(178,0,255,1)",
+          "rgba(178,0,255,0.5)",
+
+          "rgba(255,216,0,1)",
+          "rgba(255,216,0,0.5)",
+
+          "rgba(100,100,100,1)",
+          "rgba(100,100,100,0.5)",
+        ];
+
+        var key = combo.options[combo.selectedIndex].text;
+        data = readings[key];
+
+     
+        errorUp = [];
+        errorDown = [];
+
         for (i = 0; i < data.val.length; i++) {
-          errorUp[i] = data.max[i] - data.val[i]
-          errorDown[i] = data.val[i] - data.min[i]
+          errorUp[i] = data.max[i] - data.val[i];
+          errorDown[i] = data.val[i] - data.min[i];
+          if (errorUp[i] < 0 || errorDown[i] < 0)
+            color_arr[i] = "rgba(255,0,0,1)";
         }
 
         var trace1 = {
-          x: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
+          x: sources_id,
           y: data.val,
-          name: 'Control',
+          marker: {
+            color: color_arr,
+          },
+          name: "Control",
           error_y: {
-            type: 'data',
+            type: "data",
             symmetric: false,
             array: errorUp,
             arrayminus: errorDown,
-            visible: true
+            visible: true,
           },
-          type: 'bar'
-        }
+          type: "bar",
+        };
 
-        var layout = { barmode: 'group' }
-        Plotly.newPlot('chart', [trace1])
+        var layout = { title: key };
+        Plotly.newPlot("chart", [trace1], layout);
       }
 
-      function get_values (rows, col_index, sources) {
-        ;(val = []), (min = []), (max = [])
+      function get_values(rows, col_index, sources) {
+        (val = []), (min = []), (max = []);
         for (index = 0; index < sources; index++) {
-          val[index] = rows[index + FIRST_SOURCE_ROW][col_index]
-          min[index] = rows[index + FIRST_SOURCE_ROW][col_index + 1]
-          max[index] = rows[index + FIRST_SOURCE_ROW][col_index + 2]
+          val[index] = rows[index + FIRST_SOURCE_ROW][col_index];
+          min[index] = rows[index + FIRST_SOURCE_ROW][col_index + 1];
+          max[index] = rows[index + FIRST_SOURCE_ROW][col_index + 2];
         }
-        return { val: val, min: min, max: max }
+        return { val: val, min: min, max: max };
       }
 
-      function addComboOptions (readings) {
-        var x = document.getElementById('mySelect')
+      function addComboOptions(readings) {
+        var x = document.getElementById("mySelect");
         for (var key in readings) {
-          var option = document.createElement('option')
-          option.text = key
-          x.add(option)
+          var option = document.createElement("option");
+          option.text = key;
+          x.add(option);
         }
+        x.focus();
       }
 
-      const input = document.getElementById('input')
-      input.addEventListener('change', readXml)
+      const input = document.getElementById("input");
+      input.addEventListener("change", readXml);
 
-      const combo = document.getElementById('mySelect')
+      const combo = document.getElementById("mySelect");
 
-      combo.addEventListener('change', plot)
+      combo.addEventListener("change", plot);
 
-      async function readXml () {
-        rows = await readXlsxFile(input.files[0], { sheet: 'PlanSum+robust' })
+      async function readXml() {
+        try {
+          rows = await readXlsxFile(input.files[0], {
+            sheet: "PlanSum+robust",
+          });
+        } catch (error) {
+          alert(error);
+          return;
+        }
+        console.log(rows);
 
-        header = rows[1]
-        col = 0
-        while (header[col] != '' && header[col] != 'PTV_1_volume') col++
-        col++
-        FIRST_SOURCE_ROW = 2
-        sources = 0 // number of sources - items in PTV_1_volume column
+        // check headers
+        header = rows[HEADER_ROW];
+        if (header[8] != "PTV_1_volume") {
+          alert(
+            "PTV_1_volume not found on: row:",
+            HEADER_ROW,
+            " column:",
+            PTV_1_VOLUME_COLUMN
+          );
+          return;
+        }
 
-        while (
-          rows[FIRST_SOURCE_ROW + sources] &&
-          rows[FIRST_SOURCE_ROW + sources][col] != ''
-        )
-          sources++
+        col = PTV_1_VOLUME_COLUMN;
+        col++; // start reading from next column
 
-        while (header[col] != undefined && header[col] != '') {
-          origName = header[col]
+        sources = SOURCES; // number of sources - items in PTV_1_volume column
 
-          name = header[col].replaceAll('_', '').toLowerCase()
+        for (index = 0; index < sources; index++) {
+          sources_id[index] =
+            rows[FIRST_SOURCE_ROW + index][ID_COLUMN] +
+            " " +
+            rows[FIRST_SOURCE_ROW + index][INDICATION_COLUMN];
+        }
+        console.log(sources_id);
+
+        while (header[col] != undefined && header[col] != "") {
+          origName = header[col];
+
+          name = header[col].replaceAll("_", "").toLowerCase();
           if (
-            header[col + 1].replaceAll('_', '').toLowerCase() ===
-              name + 'min' &&
-            header[col + 2].replaceAll('_', '').toLowerCase() === name + 'max'
+            header[col + 1].replaceAll("_", "").toLowerCase() ===
+              name + "min" &&
+            header[col + 2].replaceAll("_", "").toLowerCase() === name + "max"
           ) {
-            data = get_values(rows, col, sources)
-            readings[origName] = data
-            col += 3
+            data = get_values(rows, col, sources);
+            readings[origName] = data;
+            col += 3;
           } else {
-            console.log('alone', name)
-            col++
+            console.log("alone", name);
+            col++;
           }
         }
-        addComboOptions(readings)
+        addComboOptions(readings);
+        plot();
       }
     </script>
   </body>
